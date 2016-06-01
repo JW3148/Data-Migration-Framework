@@ -1,6 +1,3 @@
-# Data-Migration-Framework
-Data Migration from an application point of view
-
 1. Archiving(rolling, Adhoc drop)
 2. Scripting(BCP)
 3. Deployment(Command Script)
