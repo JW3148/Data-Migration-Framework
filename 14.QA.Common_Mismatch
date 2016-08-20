@@ -1,0 +1,37 @@
+same input + same code = same output? Not necessary!!
+
+QA procedure(General)
+- check source
+- check coding
+- check non-deterministic in coding
+
+
+Row Count Difference
+-What can cause row count mismatch?
+Bottom up approach
+-update statement will not introduce row count mismatch;
+-usually will come from a 'select...into...' or 'insert...into...select' statement
+-essencialy 'select' statement
+-in a select statement, JOIN and GROUP BY will be the two big suspects
+-Join: Attribute relationship
+-Group by: usually with string columns. if a particular cell is off, 
+    -may not causing any issue, other columns in group by may already form a unique group
+     
+     group by c1, c2, c3
+     
+    c1 c2 c3
+     a, b, c
+     x, y, z   --change z will not affect the grouping, still gonna be 3 groups 
+     a, b, d   --change d to c will affect the grouping, will be 2 groups
+     a, b, c   --change c to e will affect the grouping, will be 4 groups
+-Non-deterministic coding
+Top down approach
+-identify the addtional rows, great if you have a primary key
+
+
+
+Column Aggregation Difference(sum)
+
+
+
+Column Aggregation Difference(count(distinct))
