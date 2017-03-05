@@ -1,0 +1,19 @@
+
+	Declare @inputFile		varchar(100),
+			@cmd			varchar(1000);
+	
+	Set @inputFile	=	'D:\xyz.txt';
+	Print 'Input File  = ' + @inputFile;
+  
+	CREATE TABLE #temp (line char(1000));
+	Set @cmd='
+	BULK INSERT #temp 
+		FROM ''' + @inputFile + '''
+		WITH (
+			DATAFILETYPE = ''char'',
+			ROWTERMINATOR = ''\n''
+			);
+	'	
+	Print 'Cmd = ' + @cmd
+
+	EXEC(@cmd);
