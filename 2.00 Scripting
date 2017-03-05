@@ -1,0 +1,296 @@
+
+DECLARE @DBName VARCHAR(100)	
+DECLARE @ProcName VARCHAR(200)  
+DECLARE @SQLstring VARCHAR(MAX)
+DECLARE @FileName VARCHAR(MAX)  = @ProcName+'.sql'
+DECLARE @Path VARCHAR(MAX)      = '' --'C:\...\'
+DECLARE @BCP VARCHAR(MAX)
+
+SET @SQLstring='SELECT DEFINITION FROM '+@DBName+'.sys.sql_modules s INNER JOIN '+@DBName+'.sys.procedures p ON s.object_id=p.object_id WHERE p.name= '''+@ProcName+''''
+--PRINT @SQLstring
+SET @BCP='BCP '+'"'+@SQLstring+'"'+' queryout '+ '"'+@Path+@FileName+'"'+' -S '+'%1'+' -T '+'-t'+' -w'
+PRINT @BCP
+
+
+select * from sys.sql_modules
+select * from sys.procedures
+
+use Act_Detailed_Experience
+go
+
+set nocount on 
+go
+	
+if OBJECT_ID('tempdb..#results','U') is not null
+drop table #results
+create table #results(dbName varchar(max), procName varchar(max), bcpCMD varchar(max), dpCMD varchar(max))
+
+--select * from #results
+	
+	/*
+	;with cte1 as (
+	select name, 'Act_Detailed_Experience' as dbname, definition from Act_Detailed_Experience.sys.procedures a
+	INNER JOIN	Act_Detailed_Experience.sys.sql_modules b
+	on a.object_id=b.object_id
+    where name like 'usp_FICOH%'
+	and name not like '%test'
+	and definition like '%pricemonitor%'
+	and name='usp_FICOH_DE_Step_04a_2_Import_SPI_Claims_Detail')
+	select definition from cte1
+	*/
+
+--ALL FICOH PROCS...
+/*
+SELECT  rowNumber=ROW_NUMBER()over(order by name),  dbname, name
+into #procedures
+from 
+(select 'Act_Detailed_Experience' as dbName, name from Act_Detailed_Experience.sys.procedures
+where name like 'usp_FICOH%'
+and name not like '%test'
+/*
+union
+select 'Act_Hub_Reporting' as dbName, name from Act_Hub_Reporting.sys.procedures
+where name like 'usp_%'
+and name not like '%test'
+union
+select 'Act_Definitions' as dbName, name from Act_Definitions.sys.procedures
+where name like 'usp_FICOH%'
+*/) a 
+
+/*select '('+'''FICOH DE'', '+''''+name+'''),' from  #procedures
+where dbname <> 'Act_Hub_Reporting'
+*/
+*/
+
+
+
+
+/*
+if(OBJECT_ID('tempDB.dbo.#procedures', 'U') is not null) 
+drop table  #procedures
+go
+create table  #procedures (rowNumber int identity (1,1), dbName varchar(max), name varchar(max))
+
+insert into #procedures( dbname, name) values
+('Act_Detailed_Experience', 'usp_Step_0_Detailed_Experience_Setup'),
+('Act_Detailed_Experience', 'usp_Step_0a_Table_Drops'),
+('Act_Detailed_Experience', 'usp_Step_X_BuildingRates_Property_Exposure'),
+('Act_Detailed_Experience', 'usp_Step_1_Premium'),
+('Act_Detailed_Experience', 'usp_Step_1a_Build_Claim_Information'),
+('Act_Detailed_Experience', 'usp_Step_2_Losses'),
+('Act_Detailed_Experience', 'usp_Step_2a_Claim_Information'),
+('Act_Detailed_Experience', 'usp_Step_3_Premium_Loss_Join'),
+('Act_Detailed_Experience', 'usp_Step_4_Policy_Information'),
+('Act_Detailed_Experience', 'usp_Step_5_Prior_Policy_Numbers'),
+('Act_Detailed_Experience', 'usp_Step_6a_Producer_Information'),
+('Act_Detailed_Experience', 'usp_Step_6b_Producer_Info_Premium'),
+('Act_Detailed_Experience', 'usp_Step_7_Policy_Product_State_CoverageGroup'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_AE'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_Auto'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_CL'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_FA_1_Policy'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_FA_2_Premium'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_GL'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_NPDO'),
+('Act_Detailed_Experience', 'usp_Step_8_Coverage_SAM'),
+('Act_Detailed_Experience', 'usp_Step_9_GL_Dominant_Territory'),
+('Act_Detailed_Experience', 'usp_Step_10a_GL_Class_Code_Avg_Rate_Table'),
+('Act_Detailed_Experience', 'usp_Step_10b_Average_GL_Rates_Policy'),
+('Act_Detailed_Experience', 'usp_Step_13_UW_Check_List'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_DY'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_EPE'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_GLDX'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_HS009_HS013'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_MOLL'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_PVCD'),
+('Act_Detailed_Experience', 'usp_Step_14_Endorsement_VS'),
+('Act_Detailed_Experience', 'usp_Step_14b_Coverage_PVCD'),
+('Act_Detailed_Experience', 'usp_Step_15_Account_Loss_Ratios'),
+('Act_Detailed_Experience', 'usp_Step_16_Account_Dominant_Policy'),
+('Act_Detailed_Experience', 'usp_Step_17_Premium_15_Month'),
+('Act_Detailed_Experience', 'usp_Step_18_Losses_15_Month'),
+('Act_Detailed_Experience', 'usp_Step_19_Premium_Loss_Join_15_Months'),
+('Act_Detailed_Experience', 'usp_Step_20_Producer_Info_Premium_15_Months'),
+('Act_Detailed_Experience', 'usp_Step_21_Coverage_FA_2_Premium_15_Months'),
+('Act_Detailed_Experience', 'usp_Step_22_Create_Premium_Summary_Indexes'),
+('Act_Detailed_Experience', 'usp_Step_22a_Non_Hired_Non_Owned'),
+('Act_Detailed_Experience', 'usp_Step_22b_Non_Hired_Non_Owned'),
+('Act_Detailed_Experience', 'usp_Step_22c_Non_Hired_Non_Owned'),
+('Act_Detailed_Experience', 'usp_DetailedExperienceRefTableCheck'),
+('Act_Detailed_Experience', 'usp_DetailedExperienceSpaceCheck'),
+('Act_Detailed_Experience', 'usp_PHLYLT_Step_00_Loss_Setup_Parameters'),
+('Act_Detailed_Experience', 'usp_PHLYLT_Step_01_Build_Premium_Data'),
+('Act_Detailed_Experience', 'usp_PHLYLT_Step_02_Build_Claim_Information'),
+('Act_Detailed_Experience', 'usp_PHLYLT_Step_03_Build_Loss_Data'),
+('Act_Detailed_Experience', 'usp_CT_01_Compress_DE_OutputTables'),
+('Act_Detailed_Experience', 'usp_Step_23_Table_Renames'),
+('Act_Detailed_Experience', 'usp_Step_24_View_Updates'),
+('Act_Detailed_Experience', 'usp_Step_25_All_Lines_Table_Creation'),
+('Act_Detailed_Experience', 'usp_Step_26_All_Lines_Losses_Table_Creation'),
+('Act_Detailed_Experience', 'usp_Step_26a_Consolidated_Tables_Creation'),
+('Act_Detailed_Experience', 'usp_Step_27_Backup_Current_Table_Renames'),
+('Act_Detailed_Experience', 'usp_OLF_Step_00_PM_Create_Tables'),
+('Act_Detailed_Experience', 'usp_OLF_Step_01_PM_Detailed_Rate_Change_Table'),
+('Act_Detailed_Experience', 'usp_OLF_Step_02_PM_Summarized_Rate_Change_Table'),
+('Act_Detailed_Experience', 'usp_OLF_Step_03_Premium_Average_Change_Table'),
+('Act_Detailed_Experience', 'usp_OLF_Step_04_Policy_Level_Rate_Change_Table'),
+('Act_Detailed_Experience', 'usp_OLF_Step_05_OnLevel_Factors_Table'),
+('Act_Detailed_Experience', 'usp_OLF_Step_06_DE_OnLevel_EP_Join')
+
+*/
+
+declare @spName			varchar(max) 
+declare @dbName			varchar(max) 
+declare @string1		varchar(max)
+declare @spDef			varchar(max)
+declare @filePath		varchar(max)
+declare @bcpCommand		varchar(max)
+declare @prefix			varchar(max)
+declare @dpCommand		varchar(max)
+declare @findReplaceDef varchar(max)
+declare @cnt			int
+declare @cnt_total		int
+-------------------------------------------------------------------------------
+if(OBJECT_ID('tempDB.dbo.#procedures1', 'U') is not null) 
+drop table  #procedures1
+
+
+select * into #procedures1
+from 
+(
+select row_number()over(order by name) as rowNumber, 'Act_Detailed_Experience' as dbName, name from Act_Detailed_Experience.sys.procedures
+where name like 'usp_FICOH%'
+and name not like '%test'
+and name not like '%market_segment%'
+) a
+
+
+select @cnt=1
+select @cnt_total=max(rowNumber) from #procedures1
+select @findReplaceDef= 'replace(replace(replace(replace(replace(replace(replace(definition,''[Act_Detailed_Experience].'',''''),''Act_Detailed_Experience.'', ''''), ''Act_Definitions.dbo.Syn_DE_Reporting_Definitions_Base'',''dbo.Syn_DE_Reporting_Definitions_Base''), ''Act_definitions.dbo'',''def.''),''[ACT_Definitions].[dbo].'', ''def.''),''Act_definition.sys.'',''def.''),''Act_definitions..'',''def.'')'
+/*
+this does Act_definitions.sys.XXX
+*/
+
+
+While @cnt <= @cnt_total
+begin
+	select @dbName=dbName, @spName =name
+	from #procedures1
+	where rowNumber=@cnt
+	set @filePath='C:\Users\jwang\Desktop\BCP TEST\'+@spName+'.sql'
+	set @prefix = '''SET ANSI_NULLS ON''+char(13)+char(10)+''GO''+ char(13)+char(10) + ''SET QUOTED_IDENTIFIER ON''+char(13)+char(10)+''GO''+ char(13)+char(10)+''IF EXISTS (SELECT * FROM sys.objects WHERE type = ''''P'''' AND name ='''''+@spName+''''')''+char(13)+char(10)+char(9)+''DROP PROCEDURE dbo.'+@spName+'''+char(13)+char(10)+''GO''+char(13)+char(10)+char(13)+char(10)+'
+	set @spDef ='SELECT'+ @prefix+@findReplaceDef+'+ char(13)+char(10) + ''GO'' FROM '+@dbName+'.sys.sql_modules s INNER JOIN '+@dbName+'.sys.procedures p ON [s].[object_id] = [p].[object_id] WHERE p.name = '''+@spName+''''
+	set @bcpCommand= 'bcp "'+@spDef+'" queryout "'+@filePath+'" -S %1 -T -t -w'
+	set @dpCommand='sqlcmd -S %1 -d '+ 'FICOH_'+@dbName+' -i '+@spName+ '.sql -E'
+	insert into #results values(@dbName,@spName,@bcpCommand,@dpCommand)
+	--print @bcpCommand
+	set @cnt=@cnt+1
+end
+
+
+
+--Select * from #results
+
+-------------------------------------------------------------------
+
+if(OBJECT_ID('tempDB.dbo.#procedures2', 'U') is not null) 
+drop table  #procedures2
+
+select * into #procedures2
+from 
+(
+select row_number()over(order by name) as rowNumber, 'Act_Detailed_Experience' as dbName, name from Act_Detailed_Experience.sys.procedures
+where name like'%segment%'
+) a
+
+
+select @cnt=1
+select @cnt_total=max(rowNumber) from #procedures2
+select @findReplaceDef= 'replace(replace(replace(definition,''Act_Definition..'', ''dbo.''), ''Act_Definitions.'',''''),''Act_Detailed_Experience.'','''')'
+
+While @cnt <= @cnt_total
+begin
+	select @dbName=dbName, @spName =name
+	from #procedures2
+	where rowNumber=@cnt
+	set @filePath='C:\Users\jwang\Desktop\BCP TEST\'+@spName+'.sql'
+	set @prefix = '''SET ANSI_NULLS ON''+char(13)+char(10)+''GO''+ char(13)+char(10) + ''SET QUOTED_IDENTIFIER ON''+char(13)+char(10)+''GO''+ char(13)+char(10)+''IF EXISTS (SELECT * FROM sys.objects WHERE type = ''''P'''' AND name ='''''+@spName+''''')''+char(13)+char(10)+char(9)+''DROP PROCEDURE dbo.'+@spName+'''+char(13)+char(10)+''GO''+char(13)+char(10)+char(13)+char(10)+'
+	set @spDef ='SELECT'+ @prefix+@findReplaceDef+'+ char(13)+char(10) + ''GO'' FROM '+@dbName+'.sys.sql_modules s INNER JOIN '+@dbName+'.sys.procedures p ON [s].[object_id] = [p].[object_id] WHERE p.name = '''+@spName+''''
+	set @bcpCommand= 'bcp "'+@spDef+'" queryout "'+@filePath+'" -S %1 -T -t -w'
+	set @dpCommand='sqlcmd -S %1 -d '+ 'FICOH_'+@dbName+' -i '+@spName+ '.sql -E'
+	insert into #results(dbName,procName,bcpCMD,dpCMD) values(@dbName,@spName,@bcpCommand,@dpCommand)
+	--print @bcpCommand
+	set @cnt=@cnt+1
+end
+
+---------------------------------------------------------------------------
+
+if(OBJECT_ID('tempDB.dbo.#procedures3', 'U') is not null) 
+drop table #procedures3
+
+select * into #procedures3
+from 
+(
+select row_number()over(order by name) as rowNumber, 'Act_Definitions' as dbName, name from Act_definitions.sys.procedures
+) a
+
+select @cnt=1
+select @cnt_total=max(rowNumber) from #procedures3
+select @findReplaceDef= 'replace(definition, ''Act_Definitions.'','''')'
+
+While @cnt <= @cnt_total
+begin
+	select @dbName=dbName, @spName = name
+	from #procedures3
+	where rowNumber=@cnt
+	set @filePath='C:\Users\jwang\Desktop\BCP TEST\'+@spName+'.sql'
+	set @prefix = '''SET ANSI_NULLS ON''+char(13)+char(10)+''GO''+ char(13)+char(10) + ''SET QUOTED_IDENTIFIER ON''+char(13)+char(10)+''GO''+ char(13)+char(10)+''IF EXISTS (SELECT * FROM sys.objects WHERE type = ''''P'''' AND name ='''''+@spName+''''')''+char(13)+char(10)+char(9)+''DROP PROCEDURE dbo.'+@spName+'''+char(13)+char(10)+''GO''+char(13)+char(10)+char(13)+char(10)+'
+	set @spDef ='SELECT'+ @prefix+@findReplaceDef+'+ char(13)+char(10) + ''GO'' FROM '+@dbName+'.sys.sql_modules s INNER JOIN '+@dbName+'.sys.procedures p ON [s].[object_id] = [p].[object_id] WHERE p.name = '''+@spName+''''
+	set @bcpCommand= 'bcp "'+@spDef+'" queryout "'+@filePath+'" -S %1 -T -t -w'
+	set @dpCommand='sqlcmd -S %1 -d '+ 'FICOH_'+@dbName+' -i '+@spName+ '.sql -E'
+	insert into #results(dbName,procName,bcpCMD,dpCMD) values(@dbName,@spName,@bcpCommand,@dpCommand)
+	--print @bcpCommand
+	set @cnt=@cnt+1
+end
+
+
+
+/*
+set @cnt=0
+While @cnt <= @cnt_total
+begin
+	select @dbName=dbName, @spName =name
+	from #procedures
+	where rowNumber=@cnt
+	set @dpCommand='sqlcmd -S %1 -d '+ @dbName+' -i '+@spName+ '.sql -E'
+	insert into #results(dpCMD) values(@dpCommand)
+	--print @dpCommand
+	set @cnt=@cnt+1
+end
+*/
+
+
+go
+
+
+
+
+--exec  sp_spaceused N'tempdb..#results'
+select * from #results
+order by dbName
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
