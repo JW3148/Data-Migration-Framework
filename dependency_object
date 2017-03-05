@@ -1,0 +1,240 @@
+
+/*
+Look for dependence objects of a process, incl. views, function, sps
+Output:#results
+*/
+USE ADS_Development_Area_new
+
+	SET NOCOUNT ON;
+
+	IF OBJECT_ID('tempdb..#databases') IS NOT NULL
+		DROP TABLE #databases
+
+	IF OBJECT_ID('tempdb..#dependencies') IS NOT NULL
+		drop table #dependencies
+
+	CREATE TABLE #databases(
+	    database_id int, 
+	    database_name sysname
+	);
+
+	-- ignore systems databases
+	INSERT INTO #databases(database_id, database_name)
+	SELECT database_id, name FROM sys.databases
+	WHERE database_id > 4
+	and name IN (''
+			)
+
+	
+	DECLARE 
+	    @database_id int, 
+	    @database_name sysname, 
+	    @sql varchar(max);
+
+	CREATE TABLE #dependencies(
+	    referencing_database varchar(max),
+	    referencing_schema varchar(max),
+	    referencing_object_name varchar(max),
+	    referenced_server varchar(max),
+	    referenced_database varchar(max),
+	    referenced_schema varchar(max),
+	    referenced_object_name varchar(max)
+	);
+
+	WHILE (SELECT COUNT(*) FROM #databases) > 0 BEGIN
+	    SELECT TOP 1 @database_id = database_id, 
+	                 @database_name = database_name 
+	    FROM #databases;
+    	
+	    SET @sql = 'INSERT INTO #dependencies select 
+	        DB_NAME(' + convert(varchar,@database_id) + '), 
+	        OBJECT_SCHEMA_NAME(referencing_id,' 
+	            + convert(varchar,@database_id) +'), 
+	        OBJECT_NAME(referencing_id,' + convert(varchar,@database_id) + '), 
+	        referenced_server_name,
+	        ISNULL(referenced_database_name, db_name(' 
+	             + convert(varchar,@database_id) + ')),
+	        referenced_schema_name,
+	        referenced_entity_name
+	    FROM ' + quotename(@database_name) + '.sys.sql_expression_dependencies';
+    
+	    EXEC(@sql);
+    
+	    DELETE FROM #databases WHERE database_id = @database_id;
+	END;
+
+	SET NOCOUNT OFF;
+
+--	SELECT distinct referenced_database, referenced_schema, referenced_object_name FROM #dependencies;
+--	SELECT distinct referencing_database, referencing_schema, referencing_object_name, referenced_database, referenced_schema, referenced_object_name FROM #dependencies;
+--	SELECT count(1) FROM #dependencies;
+--  select * from #dependencies
+
+
+GO
+
+alter table #dependencies add IsTable bit
+alter table #dependencies add IsDatabase bit
+alter table #dependencies add IsView bit
+alter table #dependencies add IsProcedure bit
+alter table #dependencies add IsFunction bit
+GO
+
+
+delete from #dependencies where referenced_database in ('PI_AQS_SYSTEM_PROD_MM','PI_AQS_Policy_PROD_MM','PI_AQS_document_PROD_MM')
+
+
+
+UPDATE #dependencies
+SET IsTable = 0
+
+UPDATE #dependencies
+SET IsDatabase = 0
+
+UPDATE #dependencies
+SET IsProcedure = 0
+
+UPDATE #dependencies
+SET IsFunction = 0
+
+UPDATE #dependencies
+SET IsView = 0
+
+UPDATE #dependencies 
+SET IsDatabase = 1
+WHERE DB_ID(referenced_database) is not null
+  AND referenced_server is null
+  AND referenced_database NOT IN ('master', 'msdb', 'CAMILION', 'LAIG_ComplianceSQLADP')
+
+UPDATE d
+SET IsTable = 1
+FROM  #dependencies d
+WHERE IsDatabase = 1
+ AND OBJECT_ID (referenced_database + '.' + ISNULL(RTRIM(referenced_schema),'') + '.' + referenced_object_name, N'U') IS NOT NULL
+
+UPDATE d
+SET IsView = 1
+FROM  #dependencies d
+WHERE IsDatabase = 1
+ AND OBJECT_ID (referenced_database + '.' + ISNULL(RTRIM(referenced_schema),'') + '.' + referenced_object_name, N'V') IS NOT NULL
+
+UPDATE d
+SET IsProcedure = 1
+FROM  #dependencies d
+WHERE IsDatabase = 1
+ AND OBJECT_ID (referenced_database + '.' + ISNULL(RTRIM(referenced_schema),'') + '.' + referenced_object_name, N'P') IS NOT NULL
+
+UPDATE d
+SET IsFunction = 1
+FROM  #dependencies d
+WHERE IsDatabase = 1
+ AND OBJECT_ID (referenced_database + '.' + ISNULL(RTRIM(referenced_schema),'') + '.' + referenced_object_name, N'TF') IS NOT NULL
+
+UPDATE d
+SET IsFunction = 1
+FROM  #dependencies d
+WHERE IsDatabase = 1
+ AND OBJECT_ID (referenced_database + '.' + ISNULL(RTRIM(referenced_schema),'') + '.' + referenced_object_name, N'FN') IS NOT NULL
+ --  select * from #dependencies
+
+-- Remove self referencing
+DELETE FROM #dependencies where  referenced_database = referencing_database
+		AND referenced_schema = referencing_schema
+	    AND referenced_object_name = referencing_object_name
+
+
+-- create objects
+
+IF OBJECT_ID('#tmp_Process_SPs', 'U') IS NOT NULL
+	DROP TABLE dbo.#tmp_Process_SPs
+
+
+CREATE TABLE dbo.#tmp_Process_SPs
+(
+	ProcessName VARCHAR(100),
+	SP_Name VARCHAR(500)
+)
+
+
+/* Enter Process Procedures here */
+INSERT INTO #tmp_Process_SPs(ProcessName, SP_Name)
+VALUES 
+/*
+('xxx', 'xxx')
+
+
+IF OBJECT_ID('tempdb..#results') IS NOT NULL
+	DROP TABLE #results
+
+GO
+
+WITH
+  cteDependencies (ProcessName, referencing_database, referencing_schema, referencing_object_name,  referenced_database,
+	    referenced_schema, referenced_object_name, IsDatabase, IsTable, IsView, IsProcedure, IsFunction,[Level])
+  AS
+  (
+    SELECT p.ProcessName,
+		referencing_database,
+	    referencing_schema,
+	    referencing_object_name,
+	    referenced_database,
+	    referenced_schema,
+	    referenced_object_name,
+		IsDatabase,
+		IsTable,
+		IsView,
+		IsProcedure,
+		IsFunction,
+		0 [Level]
+	FROM #dependencies d
+	JOIN #tmp_Process_SPs p
+		ON d.referencing_object_name = p.sp_name
+	WHERE IsDatabase = 1
+	 UNION ALL
+    SELECT d1.ProcessName,
+		d1.referencing_database,
+	    d1.referencing_schema,
+	    d1.referencing_object_name,
+	    d2.referenced_database,
+	    d2.referenced_schema,
+	    d2.referenced_object_name,
+		d2.IsDatabase,
+		d2.IsTable,
+		d2.IsView,
+		d2.IsProcedure,
+		d2.IsFunction,
+		[Level] = [Level]  + 1
+    FROM cteDependencies d1
+      INNER JOIN #dependencies d2
+	     ON d1.referenced_database = d2.referencing_database
+		AND d1.referenced_schema = d2.referencing_schema
+	    AND d1.referenced_object_name = d2.referencing_object_name
+	WHERE d1.IsDatabase = 1
+	 AND d2.IsDatabase = 1
+	 --AND d1.referencing_database = 'Act_Policy_PathID_Monthly'
+	 --AND d2.referencing_database = 'Act_Policy_PathID_Monthly'
+	 AND [Level] < 25
+
+  )
+SELECT ProcessName, referencing_database, referencing_schema, referencing_object_name,  referenced_database,
+	    referenced_schema, referenced_object_name, IsTable, IsView, IsProcedure, IsFunction, [Level]
+INTO #results
+FROM cteDependencies
+
+--views
+select * from #results
+where isview=1
+union
+--functions
+select * from #results
+where IsFunction=1
+union
+--Sps
+select * from #results
+where IsProcedure=1
+
+select distinct referenced_database+'.dbo.'+referenced_object_name from #results where IsTABLE=1
+
+
+
+
